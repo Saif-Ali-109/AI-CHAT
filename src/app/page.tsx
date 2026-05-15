@@ -45,7 +45,8 @@ export default function ChatPage() {
   const hasMounted = useSyncExternalStore(subscribeToHydration, getClientSnapshot, getServerSnapshot);
   
   const ws = useRef<WebSocket | null>(null);
-  const pendingMessageRef = useRef<string | null>(null);
+  const pendingMessageRef = useRef<{ conversationId: number; content: string } | null>(null);
+  const streamSessionRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -94,6 +95,8 @@ export default function ChatPage() {
       return;
     }
 
+    const streamSession = ++streamSessionRef.current;
+
     // Fetch messages for active conversation
     fetch(`${API_BASE}/conversations/${activeConvId}/messages`, { headers: getHeaders() })
       .then(res => res.ok ? res.json() : [])
@@ -106,15 +109,20 @@ export default function ChatPage() {
     ws.current = socket;
 
     socket.onopen = () => {
+      if (streamSession !== streamSessionRef.current) return;
       const token = localStorage.getItem('token');
       socket.send(JSON.stringify({ token, provider, conversation_id: activeConvId }));
-      if (pendingMessageRef.current) {
-        socket.send(JSON.stringify({ message: pendingMessageRef.current }));
+      if (
+        pendingMessageRef.current &&
+        pendingMessageRef.current.conversationId === activeConvId
+      ) {
+        socket.send(JSON.stringify({ message: pendingMessageRef.current.content }));
         pendingMessageRef.current = null;
       }
     };
 
     socket.onmessage = (event) => {
+      if (streamSession !== streamSessionRef.current) return;
       const data = JSON.parse(event.data);
       if (data.type === 'conversation_created') {
         setActiveConvId(data.id);
@@ -154,7 +162,7 @@ export default function ChatPage() {
           const data = JSON.parse(event.data);
           if (data.type === 'conversation_created') {
             setActiveConvId(data.id);
-            pendingMessageRef.current = input;
+            pendingMessageRef.current = { conversationId: data.id, content: input };
             setMessages([{ role: 'user', content: input }]);
             setInput('');
             setLoading(true);
@@ -178,6 +186,7 @@ export default function ChatPage() {
     if (activeConvId === id) {
       setActiveConvId(null);
       setMessages([]);
+      setLoading(false);
     }
 
     try {
@@ -201,7 +210,7 @@ export default function ChatPage() {
       <div className={`${showSidebar ? 'w-80' : 'w-0'} border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all duration-300 ease-in-out`}>
         <div className="p-4 flex items-center justify-between">
           <button 
-            onClick={() => { setActiveConvId(null); setMessages([]); }}
+            onClick={() => { setActiveConvId(null); setMessages([]); setLoading(false); }}
             className="flex items-center gap-2 flex-1 p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-medium"
           >
             <Plus size={18} /> New Chat
@@ -213,7 +222,7 @@ export default function ChatPage() {
           {conversations.map((conv) => (
             <div
               key={conv.id}
-              onClick={() => setActiveConvId(conv.id)}
+              onClick={() => { setActiveConvId(conv.id); setLoading(false); }}
               className={`group flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors ${activeConvId === conv.id ? 'bg-zinc-100 dark:bg-zinc-800' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50'}`}
             >
               <MessageSquare size={16} className="text-zinc-400" />
