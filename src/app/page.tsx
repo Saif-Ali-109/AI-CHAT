@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import { Send, User as UserIcon, Bot, LogOut, Plus, MessageSquare, Trash2, BarChart } from 'lucide-react';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ai-chat-backend--nanobanana911.replit.app';
 const API_BASE = BACKEND_URL;
 const WS_BASE = BACKEND_URL.replace(/^http/, 'ws');
 

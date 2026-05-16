@@ -4,7 +4,7 @@ import { LogIn } from 'lucide-react';
 
 export default function LoginPage() {
   const handleLogin = () => {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ai-chat-backend--nanobanana911.replit.app';
     window.location.href = `${backendUrl}/auth/login`;
   };
 
