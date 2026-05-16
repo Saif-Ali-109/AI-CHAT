@@ -4,7 +4,8 @@ import { LogIn } from 'lucide-react';
 
 export default function LoginPage() {
   const handleLogin = () => {
-    window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}/auth/login`;
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+    window.location.href = `${backendUrl}/auth/login`;
   };
 
   return (

@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import { Send, User as UserIcon, Bot, LogOut, Plus, MessageSquare, Trash2, BarChart } from 'lucide-react';
 
-// FORCE IPv4 address to avoid localhost IPv6/CORS confusion
-const API_BASE = 'http://127.0.0.1:8000';
-const WS_BASE = 'ws://127.0.0.1:8000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+const API_BASE = BACKEND_URL;
+const WS_BASE = BACKEND_URL.replace(/^http/, 'ws');
 
 const subscribeToHydration = () => () => {};
 const getClientSnapshot = () => true;
@@ -156,17 +156,19 @@ export default function ChatPage() {
       const token = localStorage.getItem('token');
       const socket = new WebSocket(`${WS_BASE}/chat`);
       ws.current = socket;
+      const messageText = input;
       socket.onopen = () => {
         socket.send(JSON.stringify({ token, provider }));
         socket.onmessage = (event) => {
           const data = JSON.parse(event.data);
           if (data.type === 'conversation_created') {
             setActiveConvId(data.id);
-            pendingMessageRef.current = { conversationId: data.id, content: input };
-            setMessages([{ role: 'user', content: input }]);
+            pendingMessageRef.current = { conversationId: data.id, content: messageText };
+            setMessages([{ role: 'user', content: messageText }]);
             setInput('');
             setLoading(true);
             fetchConversations();
+            socket.send(JSON.stringify({ message: messageText }));
           }
         };
       };
